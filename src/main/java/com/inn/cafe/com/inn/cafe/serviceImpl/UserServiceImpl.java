@@ -6,10 +6,15 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.neo4j.Neo4jProperties.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 
+import com.inn.cafe.com.inn.cafe.JWT.CustomerUsersDetailsService;
+import com.inn.cafe.com.inn.cafe.JWT.JwtUtil;
 import com.inn.cafe.com.inn.cafe.POJO.User;
 import com.inn.cafe.com.inn.cafe.dao.UserDao;
 import com.inn.cafe.com.inn.cafe.service.UserService;
@@ -23,6 +28,15 @@ import lombok.extern.slf4j.Slf4j;
 public class UserServiceImpl implements UserService {
     @Autowired
     UserDao userDao;
+
+    @Autowired
+    JwtUtil jwtUtil;
+
+    @Autowired
+    AuthenticationManager authenticationManager;
+
+    @Autowired
+    CustomerUsersDetailsService customerUsersDetailsService;
 
     @Override
     public ResponseEntity<String> signUp(Map<String, String> requestMap) {
@@ -125,6 +139,30 @@ public class UserServiceImpl implements UserService {
             
         }
         return CafeUtils.getResponseEntity("Something is wrong", HttpStatus.INTERNAL_SERVER_ERROR );
+    }
+
+    @Override
+    public ResponseEntity<String> logIn(Map<String, String> requestMap) {
+        try {
+            org.springframework.security.core.Authentication authentication= authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(requestMap.get("email"), requestMap.get("password"))
+            );
+
+            if(authentication.isAuthenticated()){
+                if(customerUsersDetailsService.getUserDetail().getStatus().equalsIgnoreCase("true")){
+                    String token= jwtUtil.generateToken(customerUsersDetailsService.getUserDetail().getEmail(),
+                    customerUsersDetailsService.getUserDetail().getRole());
+                    return CafeUtils.getResponseEntity("{\"token\":\""+token+"\"}", HttpStatus.OK);
+                }
+                else{
+                    return CafeUtils.getResponseEntity("Waiting for admin approval", HttpStatus.FORBIDDEN);
+                }
+
+            }
+        } catch (Exception e) {
+            log.error("{}", e);
+        }
+        return CafeUtils.getResponseEntity("smth went wrong", HttpStatus.INTERNAL_SERVER_ERROR );
     }
     
 
