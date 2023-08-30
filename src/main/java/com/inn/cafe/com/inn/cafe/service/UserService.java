@@ -9,6 +9,7 @@ import com.inn.cafe.com.inn.cafe.POJO.User;
 
 public interface UserService {
     ResponseEntity<String> signUp(Map<String, String> requestMap);
+    ResponseEntity<String> logIn(Map<String, String> requestMap);
     ResponseEntity<List<User>> getUsers();
     ResponseEntity<User> getUser(int id);
     ResponseEntity<String> deleteUser(int id);
